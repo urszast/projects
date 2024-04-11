@@ -1,0 +1,852 @@
+---
+title: "EDA - STUDENT BEHAVIOUR"
+author: "Urszula Zastawna"
+date: "2023-11-30"
+output:
+  html_document:
+    toc: yes
+    toc_float:
+      smoot_scrool: yes
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# **Użyte pakiety**
+```{r, message=FALSE, warning=FALSE}
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(psych)
+library(mice)
+library(corrplot)
+
+```
+
+
+# **OPIS ZESTAWU DANYCH**
+Zbiór danych"Student Behaviour" zawiera rożne informacje dotyczące studentów zebrane za pomocą formularza Google.  
+  
+Zbiór zawiera następujące kolumny:  
+  
+**Certification.Course** (Certyfikat) - zmienna typu character: wskazuje, czy student ukończył dowolny kurs certyfikacyjny, czy nie  
+
+**Gender** (Płeć) - zmienna typu character  
+  
+**Department** (Kierunek) - zmienna typu character: kierunek studiów, na którym studiował student. Możliwe opcje:
+
+- BCA
+- Commerce
+- B.com ISM
+- B.com Accounting and Finance
+ 
+  
+**Height.CM.** (Wzrost) - zmienna liczbowa: wzrost Studenta w centymetrach  
+  
+**Weight.KG.** (Waga) - zmienna liczbowa: waga Studenta w kilogramach  
+  
+**X10th.Mark** (Ocena10) - zmienna liczbowa: Ocena końcowa Studenta w 10 klasie  
+  
+**X12th.Mark** (Ocena12) - zmienna liczbowa: Ocena końcowa Studenta w 12 klasie  
+  
+**college.mark** (OcenaUczelnia) - zmienna liczbowa: Ocena końcowa Studenta na uczelni  
+  
+**hobbies** (Hobby) - zmienna typu character: Hobby Studenta; opcje:
+
+- Sports (Sport)
+- Cinema (Kino)
+- Video Games (Gry komputerowe)
+- Reading books (Czytanie książek)  
+  
+**daily.studing.time** (CzasNauki) - zmienna typu character: Ilość czasu spędzona na nauce w ciągu dnia; do wyboru przedziały:
+
+- 0 - 30 minute
+- 30 - 60 minute
+- 1 - 2 Hour
+- 2 - 3 hour
+- 3 - 4 hour  
+  
+**prefer.to.study.in** (PreferowanaPoraNauki): do wybory opcje:  
+- Anytime (Obojętnie)  
+- Morning (Rano)  
+- Night (Wieczorem/W nocy)  
+  
+**salary.expectation** (OczekiwaneWynagrodzenie) - zmienna liczbowa: Oczekiwana wartość otrzymywanego wynagrodzenia  
+  
+**Do.you.like.your.degree** (CzyLubiszSwojDyplom) - zmienna typu character  
+  
+**willingness.to.pursue.a.career.based.on.their.degree** (DalszaKariera) - zmienna typu character: Chęć, gotowość studenta do kontynuowania kariery zawodowej związanej z posiadanym wykształceniem; wyrażona w procentach; do wybory opcje:
+
+- 0%
+- 25%
+- 50%
+- 75%
+- 100%  
+  
+**social.medai...video** (SocialMedia): Czas spędzony przez Studenta dziennie na social mediach lub oglądaniu video; do wyboru przedziały:
+
+- 1 - 30 Minute
+- 30 - 60 Minute
+- 1 - 1.30 hour
+- 1.30 - 2 hour
+- More than 2 hour  
+  
+**Travelling.Time** (CzasDojazdu) - zmienna typu character: Czas spędzony przez Studenta dziennie na dojazd do placówki edukacyjnej; do wybory przedziały: 
+
+- 0 - 30 minutes
+- 30 - 60 minutes
+- 1 - 1.30 hour
+- 1.30 - 2 hour
+- 2 - 2.30 hour
+  
+**Stress.Level** (Stres) - zmienna typu character: Poziom stresu Studenta; do wyboru opcje:
+
+- fabulous
+- Good
+- Bad
+- Awful  
+  
+**Financial.Status** (StatusFinansowy) - zmienna typu character: Sytuacja finansowa, ekonomiczna studenta; do wyboru opcje:
+
+- Fabulous
+- good
+- Bad
+- Awful  
+  
+**part.time.job** (Praca) - zmienna typu character: Informacja, czy student pracuje w niepełnym wymiarze godzin.
+
+# **WCZYTANIE DANYCH I WSTĘPNY OGLĄD**
+```{r}
+dane <- read.csv(file = "C:/Users/Asus/Desktop/Studia_Informatyka_i_Ekonometria/R/EDA/Student_Behaviour.csv", sep = ",")
+```
+Badam strukturę danych - ilość obserwacji, ilość zmiennych i typy zmiennych:
+```{r}
+str(dane)
+```
+Oglądam dane: 5 pierwszych i 5 ostatnich.
+```{r}
+head(dane, 5)
+tail(dane, 5)
+```
+
+Zmieniam nazwy na polskie - krótsze i łatwiejsze do zrozumienia.
+```{r}
+nazwy <- c("Certyfikat", "Plec", "Kierunek", "Wzrost", "Waga", "Ocena10", "Ocena12",
+           "OcenaUczelnia", "Hobby", "CzasNauki", "PreferowanaPoraNauki",
+           "OczekiwaneWynagrodzenie", "CzyLubiszSwojDyplom", "DalszaKariera",
+           "SocialMedia", "CzasDojazdu", "Stres", "StatusFinansowy", "Praca")
+names(dane) <- nazwy
+```
+
+Sprawdzam, czy są braki danych, za pomocą funkcji md.pattern() z pakietu mice
+```{r}
+md.pattern(dane)
+```
+
+Funkcja potwierdziła, że nie mamy braków danych.
+
+# **ANALIZA ZMIENNYCH**
+## 1. Zmienna *'Certyfikat'*:  
+Zmienna ta wskazuje, czy student ukończył dowolny kurs certyfikacyjny, czy nie. Jest to zmienna typu character, która przyjmuje wartości 'Yes' lub 'No'. Zmieniam typ na *factor*, a następnie za pomocą funkcji *table()* patrzę ile jest poszczególnych wartości 
+```{r}
+dane$Certyfikat <- as.factor(dane$Certyfikat)
+
+table(dane$Certyfikat)
+```
+Widzę, że 152 osoby z 235 ukończyły kurs certyfikacyjny, co daje prawie 2/3 badanych
+
+## 2. Zmienna *'Plec'*:
+Jest to zmienna typu character, przyjmująca wartości 'Female' lub 'Male'. Zmieniam typ na *factor* i za pomocą funkcji *table()* patrzę ile jest poszczególnych wartości
+```{r}
+dane$Plec <- as.factor(dane$Plec)
+
+table(dane$Plec)
+```
+Zdecydowana większość badanych (prawie 2/3) to mężczyźni.
+
+## 3. Zmienna *'Kierunek'*:
+Zmienna opisująca kierunek studiów, na którym studiował student.  
+Możliwe wartości:
+
+- BCA - Bachelor of Computer Application (Licencjat z aplikacji komputerowych);
+- Commerce (Handel)
+- B.com ISM - Bachelor of Commerce in Information System and Management (Licencjat w zakresie systemów informatycznych i zarządzania)
+- B.com Accounting and Finance - Bachelor of Commerce in Accounting and Finance (Licencjat w zakresie rachunkowości i finansów)
+
+**B.com to tytuł licencjata w dziedzinie biznesu, zarządzania, ekonomii lub rachunkowości, przyznawany w niektórych krajach 
+
+Jest to zmienna typu *character*, ale zmieniam typ na *factor* w celu ułatwienia dalszych analiz. Za pomocą funkcji *table()* sprawdzam ile studentów studiuje/studiowało na poszczególnych kierunkach. Dodatkowo przedstawiam te dane na wykresie kolumnowym
+```{r, warning=FALSE}
+dane$Kierunek <- as.factor(dane$Kierunek)
+
+table(dane$Kierunek)
+  
+dane %>%
+  ggplot() +
+  geom_bar(aes(x = Kierunek), 
+           position = "dodge2",
+           color = "darkblue", fill = "lightblue") +
+theme_light() +
+  labs(title = "Liczba studentów na poszczególnych kierunkach",
+       x = "Kierunek studentów",
+       y = "Liczba studentów")
+```
+
+## 4. Zmienna *'Wzrost'*:
+Zmienna opisująca wzrost studenta w centymetrach. Jest to zmienna liczbowa. Wyświetlam jej podstawowe statystyki opisowe i generuję wykres pudełkowy z dodatkowym nałożeniam wykresu punktowego.
+```{r}
+summary(dane$Wzrost)
+
+dane %>%
+  ggplot() + 
+  geom_boxplot(aes(y = Wzrost))+
+  geom_point(aes(x=0, y=Wzrost), color="red")
+```
+
+Widać, że mamy jedną dziwną, zastanawiającą wartość odstającą: 4 cm. Raczej nie jest możliwe, aby ktoś miał taki wzrost. Podejrzewam, iż jeśli dane pochodzą z formularza google, wartość ta może wynikać, albo z nieuważnego przeczytania pytania, albo omyłkowego wpisania błędnej wartości, albo z niechęci podania prawdziwej wartości.
+
+## 5. Zmienna *'Waga'*:
+Zmienna opisująca wagę studenta w kilogramach. Jest to zmienna liczbowa. Wyświetlam jej podstawowe statystyki opisowe i generuję wykres pudełkowy z dodatkowym nałożeniam wykresu punktowego.
+```{r}
+summary(dane$Waga)
+
+dane %>%
+  ggplot() + 
+  geom_boxplot(aes(y = Waga))+
+  geom_point(aes(x=0, y=Waga), color="red")
+```
+
+
+## 6. Zmienna *'Ocena10'*:
+Zmienna opisująca ocenę końcową studenta w 10 klasie (w skali 1-100, czyli może są to procenty). Jest to zmienna liczbowa. Wyświetlam jej podstawowe statystyki opisowe i generuję wykres pudełkowy z dodatkowym nałożeniam wykresu punktowego.
+```{r}
+summary(dane$Ocena10)
+
+dane %>%
+  ggplot() + 
+  geom_boxplot(aes(y = Ocena10))+
+  geom_point(aes(x=0, y=Ocena10), color="red")
+```
+
+
+## 7. Zmienna *'Ocena12'*:
+Zmienna opisująca ocenę końcową studenta w 12 klasie (w skali 1-100, czyli może są to procenty). Jest to zmienna liczbowa. Wyświetlam jej podstawowe statystyki opisowe i generuję wykres pudełkowy z dodatkowym nałożeniam wykresu punktowego.
+```{r}
+summary(dane$Ocena12)
+
+dane %>%
+  ggplot() + 
+  geom_boxplot(aes(y = Ocena12))+
+  geom_point(aes(x=0, y=Ocena12), color="red")
+```
+
+
+## 8. Zmienna *'OcenaUczelnia'*:
+Zmienna opisująca ocenę końcową studenta na uczelni (w skali 1-100, czyli może są to procenty). Jest to zmienna liczbowa. Wyświetlam jej podstawowe statystyki opisowe i generuję wykres pudełkowy z dodatkowym nałożeniam wykresu punktowego.
+```{r}
+summary(dane$OcenaUczelnia)
+
+dane %>%
+  ggplot() + 
+  geom_boxplot(aes(y = OcenaUczelnia))+
+  geom_point(aes(x=0, y=OcenaUczelnia), color="red")
+```
+
+
+## 9. Zmienna *'Hobby'*:
+Zmienna opisuje jakie są zainteresowania (hobby) studenta.  
+Możliwe wartości:
+
+- Sports (Sport)
+- Cinema (Kino)
+- Video Games (Gry komputerowe)
+- Reading books (Czytanie książek)
+
+Jest to zmienna typu *character*, dlatego zmieniam na typ *factor* w celu ułatwienia dalszych analiz. Za pomocą funkcji *table()* sprawdzam ile studentów ma poszczególne zainteresowania. Dodatkowo przedstawiam te dane na wykresie kolumnowym
+```{r}
+dane$Hobby <- as.factor(dane$Hobby)
+
+table(dane$Hobby)
+
+dane %>%
+  ggplot() +
+  geom_bar(aes(x = Hobby),
+           position="dodge2",
+           color = "darkblue", fill = "lightblue") +
+  theme_light() +
+  labs(title = "Liczba studentów mających poszczególne hobby",
+       x = "Hobby",
+       y="Liczba studentów")
+```
+
+
+## 10. Zmienna *'CzasNauki'*:
+Zmienna opisująca ilość czasu spędzoną na nauce w ciągu dnia.  
+Możliwe przedziały:
+
+- 0 - 30 minute
+- 30 - 60 minute
+- 1 - 2 Hour
+- 2 - 3 hour
+- 3 - 4 hour  
+
+Jest to zmienna typu *character*, ale ponownie zamieniam ją na *factor*. Powinna to być zmienna kategoryczna, bo mamy kolejne poziomy czasu spędzonego na nauce, dlatego nadaję kolejność poszczególnym kategoriom, zmieniając od razu nazwy przedziałów na krótsze, logiczne, poprawne gramatycznie, ujednolicone (Pierwotnie jedne wartości były z wielkiej, inne z małej litery, w dodatku np. do wiecej niż jednej godziny nie było liczby mnogiej hours).  
+Za pomocą funkcji *table()* sprawdzam ile studentów spędza określony czas na nauce. Dodatkowo przedstawiam te dane na wykresie kolumnowym
+```{r, warning=FALSE}
+dane$CzasNauki <- as.factor(dane$CzasNauki)
+
+dane$CzasNauki <- factor(dane$CzasNauki, levels=c("0 - 30 minute", "30 - 60 minute", "1 - 2 Hour", "2 - 3 hour", "3 - 4 hour", "More Than 4 hour"), labels = c("0-0.5h", "0.5-1h", "1-2h", "2-3h", "3-4h", ">4h"))
+
+table(dane$CzasNauki)
+
+dane %>%
+  ggplot() +
+  geom_bar(aes(x = CzasNauki),
+           position="dodge2",
+           color = "darkblue", fill = "lightblue") +
+  theme_light() +
+  labs(title = "Liczba studentów a czas nauki",
+       x = "Czas nauki",
+       y="Liczba studentów")
+```
+
+
+## 11. Zmienna *'PreferowanaPoraNauki'*:
+Zmienna opisuje, jaką porę dnia studenci preferują do nauki.  
+Możliwe są opcje:
+
+- Anytime (Obojętnie)  
+- Morning (Rano)  
+- Night (Wieczorem/W nocy)
+
+Ponownie jest to zmienna typu *character*, którą zamieniam na typ *factor*. Za pomocą funkcji *table()* sprawdzam ile studentów preferuje poszczególne pory dnia.
+```{r}
+dane$PreferowanaPoraNauki <- as.factor(dane$PreferowanaPoraNauki)
+
+table(dane$PreferowanaPoraNauki)
+```
+
+
+## 12. Zmienna *'OczekiwaneWynagrodzenie'*:
+Zmienna opisująca oczekiwaną wartość otrzymywanego w przyszłości wynagrodzenia. Jest to zmienna liczbowa. Wyświetlam jej podstawowe statystyki opisowe, a także, ponieważ mamy do czynienia z dużymi wartościami, zmieniam je tak, aby były wyświetlane w tysiącach. Generuję wykres pudełkowy z dodatkowym nałożeniam wykresu punktowego.
+```{r}
+summary(dane$OczekiwaneWynagrodzenie)
+
+dane1 <- dane %>%
+  mutate(OczekiwaneWynagrodzenie = OczekiwaneWynagrodzenie/1000)
+
+dane1 %>%
+  ggplot() + 
+  geom_boxplot(aes(y = OczekiwaneWynagrodzenie))+
+  geom_point(aes(x=0, y=OczekiwaneWynagrodzenie), color="red")+
+  labs(y="Oczekiwane wynagrodzenie (w tys)")
+```
+
+Widać, że wykres jest średnio czytelny. Dzieje się tak dlatego, że zdecydowana większość wartości jest w okolicach 20000, jednak jeden student sobie zamarzył 1500000, co stanowi wartość odstającą i powoduje konieczność dużego zakresu skali. Generuję wykres jeszcze raz, bez tej wartości
+```{r}
+dane1 %>%
+  filter(OczekiwaneWynagrodzenie !=1500) %>%
+  ggplot() + 
+  geom_boxplot(aes(y = OczekiwaneWynagrodzenie))+
+  geom_point(aes(x=0, y=OczekiwaneWynagrodzenie), color="red")+
+  labs(y="Oczekiwane wynagrodzenie (w tys)")
+```
+
+Nadal jest mało czytelnie. Generuję jeszcze raz, dla wartości poniżej 200 tys
+```{r}
+dane1 %>%
+  filter(OczekiwaneWynagrodzenie <200) %>%
+  ggplot() + 
+  geom_boxplot(aes(y = OczekiwaneWynagrodzenie))+
+  geom_point(aes(x=0, y=OczekiwaneWynagrodzenie), color="red")+
+  labs(y="Oczekiwane wynagrodzenie (w tys)")
+```
+
+Ten wykres jest wreszcie czytelny. Pamiętam jednak, że tamte wartości nadal są, tylko pomijam je na tym wykresie.
+
+## 13. Zmienna *'CzyLubiszSwojDyplom'*:
+Zmienna mówiąca o tym, czy student lubi swój dyplom, czy jest z niego zadowolony. Przyjmuje wartości 'Yes' lub 'No'. Jest to zmienna typu *character*, którą także zamieniam na *factor*, a następnie za pomocą funkcji *table()* patrzę ile jest poszczególnych wartości
+```{r}
+dane$CzyLubiszSwojDyplom <- as.factor(dane$CzyLubiszSwojDyplom)
+
+table(dane$CzyLubiszSwojDyplom)
+```
+
+
+## 14. Zmienna *'DalszaKariera'*:
+Zmienna określająca chęć, gotowość studenta do kontynuowania kariery zawodowej związanej z posiadanym wykształceniem, wyrażona w procentach; do wybory opcje:
+
+- 0%
+- 25%
+- 50%
+- 75%
+- 100%  
+
+Jest to zmienna typu *character*, którą także zamieniam na typ *factor* oraz nadaję kolejność poszczególnym kategoriom, gdyż powinna to być zmienna kategoryczna, bo mamy kolejne poziomy.  
+Za pomocą funkcji *table()* sprawdzam ile studentów ma poszczególne poziomy chęci do kontynuowania kariery zawodowej, związanej z posiadanym wykształceniem. Dodatkowo przedstawiam te dane na wykresie kolumnowym
+```{r, warning=FALSE}
+dane$DalszaKariera <- as.factor(dane$DalszaKariera)
+
+dane$DalszaKariera <- factor(dane$DalszaKariera, levels=c("0%", "25%", "50%", "75%", "100%"))
+
+table(dane$DalszaKariera)
+
+dane %>%
+  ggplot() +
+  geom_bar(aes(x = DalszaKariera),
+           position="dodge2",
+           color = "darkblue", fill = "lightblue") +
+  theme_light() +
+  labs(title = "Liczba studentów a gotowość do rozwoju kariery związanej ze zdobytym wyształceniem",
+       x = "DalszaKariera",
+       y="Liczba studentów")
+```
+
+
+## 15. Zmienna *'SocialMedia'*:
+Zmienna opisująca czas spędzony przez studenta dziennie na social mediach lub oglądaniu video.  
+Możliwe przedziały:
+
+- 1 - 30 Minute
+- 30 - 60 Minute
+- 1 - 1.30 hour
+- 1.30 - 2 hour
+- More than 2 hour  
+
+Jest to zmienna typu *character*, ale ponownie zamieniam ją na *factor*. Podobnie jak przy zmiennej CzasNauki powinna to być zmienna kategoryczna, bo mamy kolejne poziomy czasu spędzonego na social mediach, dlatego nadaję kolejność poszczególnym kategoriom, zmieniając od razu nazwy przedziałów na krótsze, logiczne, poprawne gramatycznie, ujednolicone  
+Za pomocą funkcji *table()* sprawdzam ile studentów spędza określony czas na social mediach i oglądaniu video. Dodatkowo przedstawiam te dane na wykresie kolumnowym
+```{r, warning=FALSE}
+dane$SocialMedia <- as.factor(dane$SocialMedia)
+
+dane$SocialMedia <- factor(dane$SocialMedia, levels=c("0 Minute", "1 - 30 Minute", "30 - 60 Minute", "1 - 1.30 hour", "1.30 - 2 hour", "More than 2 hour"), labels = c("0h", "0-0.5h", "0.5-1h", "1-1.5h", "1.5-2h", ">2h"))
+
+table(dane$SocialMedia)
+
+dane %>%
+  ggplot() +
+  geom_bar(aes(x = SocialMedia),
+           position = "dodge2",
+           color = "darkblue", fill = "lightblue") +
+  theme_light() +
+  labs(title = "Liczba studentów a czas spędzany na social mediach",
+       x = "Czas spędzony na social mediach",
+       y="Liczba studentów")
+```
+
+
+## 16. Zmienna *'CzasDojazdu'*:
+Zmienna opisująca czas spędzony przez studenta dziennie na dojazd do placówki edukacyjnej.    
+Możliwe przedziały:
+
+- 0 - 30 minutes
+- 30 - 60 minutes
+- 1 - 1.30 hour
+- 1.30 - 2 hour
+- 2 - 2.30 hour
+
+Tak jak poprzednio, jest to zmienna typu *character*, ale zamieniam ją na *factor*, nadaję kolejność poszczególnym kategoriom, zmieniając nazwy przedziałów.  
+Za pomocą funkcji *table()* sprawdzam ile studentów spędza określony czas na dojazdach na uczelnię. Dodatkowo przedstawiam te dane na wykresie kolumnowym
+```{r, warning=FALSE}
+dane$CzasDojazdu <- as.factor(dane$CzasDojazdu)
+
+dane$CzasDojazdu <- factor(dane$CzasDojazdu, levels=c("0 - 30 minutes", "30 - 60 minutes", "1 - 1.30 hour", "1.30 - 2 hour", "2 - 2.30 hour", "2.30 - 3 hour", "more than 3 hour"), labels = c("0-0.5h", "0.5-1h", "1-1.5h", "1.5-2h", "2-2.5h", "2.5-3h", ">3h"))
+
+table(dane$CzasDojazdu)
+
+dane %>%
+  ggplot() +
+  geom_bar(aes(x = CzasDojazdu),
+           position="dodge2",
+           color = "darkblue", fill = "lightblue") +
+  theme_light() +
+  labs(title = "Liczba studentów a czas dojazdu na uczelnię",
+       x = "Czas dojazdu na uczelnię",
+       y="Liczba studentów")
+```
+
+
+## 17. Zmienna *'Stres'*:
+Zmienna opisująca poziom stresu studenta.  
+Możliwe opcje:
+
+- fabulous
+- Good
+- Bad
+- Awful
+
+Jest to zmienna typu *character*, zmieniam typ na *factor*, nadaje kolejność i zmieniam nazwy, aby fabulous także było z wielkiej litery.  
+Za pomocą funkcji *table()* sprawdzam ile studentów odczuwa poszczególny poziom stresu. Dodatkowo przedstawiam te dane na wykresie kolumnowym
+```{r, warning=FALSE}
+dane$Stres <- as.factor(dane$Stres)
+
+dane$Stres <- factor(dane$Stres, levels=c("Awful", "Bad", "Good", "fabulous"), labels = c("Awful", "Bad", "Good", "Fabulous"))
+
+table(dane$Stres)
+
+dane %>%
+  ggplot() +
+  geom_bar(aes(x = Stres),
+           position="dodge2",
+           color = "darkblue", fill = "lightblue") +
+  theme_light() +
+  labs(title = "Liczba studentów a poziom stresu",
+       x = "Poziom stresu",
+       y="Liczba studentów")
+```
+
+## 18. Zmienna *'StatusFinansowy'*:
+Zmienna opisująca poziom sytuacji finansowej, ekonomicznej studenta.  
+Możliwe opcje:
+
+- Fabulous
+- good
+- Bad
+- Awful  
+
+Jest to zmienna typu *character*, zmieniam typ na *factor*, nadaje kolejność i zmieniam nazwy, aby good także było z wielkiej litery.  
+Za pomocą funkcji *table()* sprawdzam ile studentów ma poszczególny poziom sytuacji finansowej. Dodatkowo przedstawiam te dane na wykresie kolumnowym
+```{r, warning=FALSE}
+dane$StatusFinansowy <- as.factor(dane$StatusFinansowy)
+
+dane$StatusFinansowy <- factor(dane$StatusFinansowy, levels=c("Awful", "Bad", "good", "Fabulous"), labels = c("Awful", "Bad", "Good", "Fabulous"))
+
+table(dane$StatusFinansowy)
+
+dane %>%
+  ggplot() +
+  geom_bar(aes(x = StatusFinansowy),
+           position="dodge2",
+           color = "darkblue", fill = "lightblue") +
+  theme_light() +
+  labs(title = "Liczba studentów a status finansowy",
+       x = "Status finansowy",
+       y="Liczba studentów")
+```
+
+
+## 19. Zmienna *'Praca'*:
+Zmienna informująca o tym, czy student pracuje w niepełnym wymiarze godzin. Jest to zmienna typu character, która przyjmuje wartości 'Yes' lub 'No'. Zmieniam typ na *factor*, a następnie za pomocą funkcji *table()* patrzę ile jest poszczególnych wartości
+```{r}
+dane$Praca <- as.factor(dane$Praca)
+
+table(dane$Praca)
+
+```
+
+Zdecydowana większość, bo aż 194 studentów nie pracuje.
+
+# **ZMIENNE ILOŚCIOWE**
+Zmienne ilościowe w analizowanym zestawie danych to: *Wzrost*, *Waga*, *Ocena10*, *Ocena12*, *OcenaUczelnia* oraz *OczekiwaneWynagrodzenie*.  
+
+Wyznaczam szczegółowe statystyki opisowe zmiennych ilościowych, za pomocą funkcji *describe()* z pakietu *psych()*
+```{r}
+dane %>% 
+  select(Wzrost, Waga, Ocena10, Ocena12, OcenaUczelnia, OczekiwaneWynagrodzenie) %>% 
+  describe()
+```
+
+
+Badam powiązania między zmiennymi ilościowymi, czyli Wzrost, Waga, Ocena10, Ocena12, OcenaUczelnia oraz OczekiwaneWynagrodzenie. W tym celu wyznaczamy współczynnik korelacji rangowej Spearmana oraz przedstawiam macierz korelacji za pomocą wizualizacji
+```{r}
+cor = cor(dane[,c("Wzrost", "Waga", "Ocena10", 
+                      "Ocena12", "OcenaUczelnia", "OczekiwaneWynagrodzenie")], 
+          method = "spearman")
+round(cor, 2)
+
+corrplot(cor, method = "square", type = "upper")
+```
+
+**WNIOSKI**  
+- Wzrost i waga nie są liniowo związane z ocenami.  
+- Wzrost jest dość związany z wagą, co jest naturalnym zjawiskiem.  
+- Poszczególne oceny (w 10 klasie, w 12 klasie i na uczelni) także są liniowo związane.  
+- Największa zależność jest pomiędzy oceną z klasy 10 i oceną na uczelni, a nie, jakby się mogło wydawać pomiędzy oceną z klasy 10 i 12 lub klasy 12 i uczelni.  
+- Oczekiwane wynagrodzenie nie jest związane z żadną inną zmienną: nie zależy od ocen, ani od wzorstu i wagi
+
+# **HIPOTEZY BADAWCZE**
+
+## 1. Czy ukończenie kursu certyfikacyjnego ma wpływ na oceny studenta na uczelni? Co wpływa na oceny studentów na uczelni.
+
+**UKOŃCZENIE KURSU CERTYFIKUJĄCEGO**  
+Podejrzewam, że ukończenie kursu certyfikacyjnego przez studentów może mieć pozytywny wpływ na ocenę na uczelni. Student, który decyduje się na taki kurs jest z reguły bardziej ambitny, chce czegoś więcej, dlatego także i jego oceny powinny być wyższe.  
+Próbuję potwierdzić tę hipotezę obliczając podstawowe statystyki opisowe (średnią, medianę i odchylenie standardowe), grupując studentów według ukończenia kursu.
+```{r}
+dane %>%
+  group_by(Certyfikat) %>%
+  summarise(srednia = mean(OcenaUczelnia),
+            mediana = median(OcenaUczelnia),
+            odch.st = sd(OcenaUczelnia))
+```
+
+Zarówno średnia, jak i mediana są wyższe w przypadku studentów, którzy ukończyli kurs certyfikacyjny, co potwierdza moje przypuszczenia.  
+
+Potwierdzę to, przedstawiając dodatkowo dane na wykresie krzywej gęstości
+```{r}
+dane %>%
+  ggplot() + 
+  geom_density(aes(x = OcenaUczelnia, 
+                   fill = Certyfikat), alpha = 0.5)+
+  labs(title="Ocena na uczelni, a ukończenie kursu certyfikowanego przez studenta", 
+       x="Ocena na uczelni",
+       y="Gęstość",
+       fill="Ukończenie kursu")
+```
+
+Tutaj również widać, że studenci, którzy ukończyli kurs certyfikacyjny uzyskują wyższe oceny na uczelni.
+
+**PŁEĆ**  
+Na podstawie mojego doświadczenia podejrzewam, że lepsze oceny będą wśród kobiet. Badam to za pomocą statystyk opisowych i krzywej gęstości.
+```{r}
+dane %>%
+  group_by(Plec) %>%
+  summarise(srednia = mean(OcenaUczelnia),
+            mediana = median(OcenaUczelnia),
+            odch.st = sd(OcenaUczelnia))
+
+dane %>%
+  ggplot() + 
+  geom_density(aes(x = OcenaUczelnia, 
+                   fill = Plec), alpha = 0.5)
+```
+
+Krzywa gęstości także potwierdza przypuszczenie o wyższych wynikach wśród kobiet niż wśród mężczyzn.
+
+**CZAS NAUKI**
+```{r}
+dane %>%
+  group_by(CzasNauki) %>%
+  summarise(srednia = mean(OcenaUczelnia),
+            mediana = median(OcenaUczelnia),
+            odch.st = sd(OcenaUczelnia))
+```
+
+Rzeczywiście im dłuższy czas nauki, tym średnia ocen jest wyższa, jednak przy ponad 4 godzinach nauki średnia drastycznie spada i jest nawet mniejsza niż przy mniej niż pół godzinie nauki. Działa więc powiedzenie "Co za dużo, to niezdrowo", czyli dużo nauki jest dobre, ale nie można przesadzać, gdyż może to prowadzić do odwrotnych skutków.
+
+**SOCIAL MEDIA**
+```{r}
+dane %>%
+  group_by(SocialMedia) %>%
+  summarise(srednia = mean(OcenaUczelnia),
+            mediana = median(OcenaUczelnia),
+            odch.st = sd(OcenaUczelnia))
+```
+
+Nie ma wyraźnego związku między czasem spędzanym na social mediach i oglądaniu video a ocenami na uczelni.
+
+**POZIOM STRESU**
+```{r}
+dane %>%
+  group_by(Stres) %>%
+  summarise(srednia = mean(OcenaUczelnia),
+            mediana = median(OcenaUczelnia),
+            odch.st = sd(OcenaUczelnia))
+```
+
+Poziomy stresu *'Good'* i *'Fabulous'* mają większe średnie ocen niż poziomy *'Awful'* i *'Bad'*, zatem możemy wnioskować, że studenci, którzy mają lepszy (to znaczy mniejszy) poziom stresu, osiągają lepsze wyniki w nauce.
+
+**STATUS FINANSOWY**
+```{r}
+dane %>%
+  group_by(StatusFinansowy) %>%
+  summarise(srednia = mean(OcenaUczelnia),
+            mediana = median(OcenaUczelnia),
+            odch.st = sd(OcenaUczelnia))
+```
+
+Można zauważyć, że wraz ze wzrostem poziomu statusu finansowego, nieznacznie rośnie średnia ocen. Myślę, że można uznać, że istnieje zależność pomiędzy ocenami na uczelni a statusem finansowym studenta. Nie jest ona bardzo wyraźna, ale występuje.
+
+**CZAS DOJAZDU**
+```{r}
+dane %>%
+  group_by(CzasDojazdu) %>%
+  summarise(srednia = mean(OcenaUczelnia),
+            mediana = median(OcenaUczelnia),
+            odch.st = sd(OcenaUczelnia))
+```
+
+Czas dojazdu także nie ma większego związku z wysokością ocen
+
+**PRACA**
+```{r}
+dane %>%
+  group_by(Praca) %>%
+  summarise(srednia = mean(OcenaUczelnia),
+            mediana = median(OcenaUczelnia),
+            odch.st = sd(OcenaUczelnia))
+
+dane %>%
+  ggplot() + 
+  geom_density(aes(x = OcenaUczelnia, 
+                   fill = Praca), alpha = 0.5)+
+  labs(title="Ocena na uczelni, a posiadanie pracy przez studenta", 
+       x="Ocena na uczelni",
+       y="Gęstość",
+       fill="Praca")
+```
+
+Tutuaj także nie widać jakichś specjalnych zależności posiadania pracy od wysokości oceny
+
+## 2. Jak mają się do siebie oceny z klasy 10, z klasy 12 i z uczelni?
+Przypuszczam, że najlepsze oceny będą w klasie 10, gdyż z reguły we wcześniejszych latach nauki łatwiej jest zdobyć dobre oceny. Myślę też, że zależności między ocenami będą dość duże, gdyż zazwyczaj na przestrzeni kilku lat oceny poszczególnych studentów nie ulegają drastycznym zmianom. Jedni mogą osiągać coraz lepsze wyniki, inni coraz gorsze, ale nadal będą to oceny na podobnym poziomie. 
+
+Sprawdzam rozkłady poszczególnych ocen za pomocą nałożenia na siebie trzech krzywych gęstości
+```{r}
+dane %>%
+  ggplot() + 
+  geom_density(aes(x = Ocena10, fill="Ocena10"), alpha = 0.5)+
+  geom_density(aes(x = Ocena12, fill="Ocena12"), alpha = 0.5)+
+  geom_density(aes(x = OcenaUczelnia, fill="OcenaUczelnia"), alpha = 0.5)+
+    labs(title = "Oceny studentów",
+       x = "Ocena na uczelni",
+       y = "Gęstość")
+
+```
+
+Z wykresu można wyczytać, że najwięcej najwyższych ocen studenci osiągali w klasie 10, najwięcej najniższych w klasie 12, a oceny na uczelni znalazły się pomiędzy ocenami z klasy 10 i 12.  
+
+Zbadam, między którymi dwoma ocenami istnieje największa, a między którymi najmniejsza zależność liniowa. W tym celu wyznaczę współczynnik korelacji Spearmana i przedstawię wizualizację macierzy korelacji.
+
+```{r}
+cor_spearman <- cor(dane[,c("Ocena10", "Ocena12", "OcenaUczelnia")], 
+          method = "spearman")
+round(cor_spearman, 2)
+
+corrplot(cor_spearman, method = "square", type = "upper")
+
+```
+
+Najciemniejszy, największy kwadrat jest na przecięciu zmiennych Ocena10 i OcenaUczelnia, czyli największa liniowa zależność jest między ocenami z klasy 10 i ocenami z uczelni, a nie jakby się bardziej wydawało między dwoma sąsiednimi (to znaczy ocenami z klasy 10 i 12 lub z klasy 12 i z uczelni). 
+
+
+## 3. Jakie są różnice w oczekiwaniach dotyczących przyszłego wynagrodzenia między studentami poszczególnych kierunków?
+Przypuszczam, że większego wynagrodzenia będą oczekiwać ponownie studenci kierunków typowo informatycznych (*BCA*, *B.com ISM*). Zbadam to wyznaczając podstawowe statystyki opisowe oczekiwanego wynagrodzenia grupując dane według kierunków. Pamiętam, że wśród oczekiwanego wynagrodzenia była wartość odstająca (1500000), która znacznie zaburzałaby moje wnioski, dlatego nie biorę jej pod uwagę przy wyznaczaniu statystyk.
+```{r}
+dane %>%
+  filter(OczekiwaneWynagrodzenie !=1500000) %>%
+  group_by(Kierunek)%>%
+  summarise(srednia = mean(OczekiwaneWynagrodzenie),
+            mediana = median(OczekiwaneWynagrodzenie),
+            odch.st = sd(OczekiwaneWynagrodzenie),
+            minimum = min(OczekiwaneWynagrodzenie),
+            maksimum = max(OczekiwaneWynagrodzenie))
+```
+
+Najwyższa średnia i wartość maksymalna jest dla kierunku *B.com ISM* (Licencjat w zakresie systemów informatycznych i zarządzania), czyli rzeczywiście studenci kierunku bardziej informatycznego oczekują większego wynagrodzenia. Ciekawe jest natomiast to, że większa średnia jest dla kierunku *B.com Accounting and Finance* niż dla *BCA*, który zdawałoby się jest bardziej informatycznym kierunkiem. 
+
+Zbadam jeszcze, czy ukończenie kursu certyfikacyjnego ma wpływ na większe oczekiwane wynagrodzenie.
+```{r}
+dane %>%
+  ggplot() + 
+  geom_density(aes(x = OcenaUczelnia, 
+                   fill = Certyfikat), alpha = 0.5)+
+  labs(title="Oczekiwane wynagrodzenie, a ukończenie kursu certyfikowanego przez studenta", 
+       x="OczekiwaneWynagrodzenie",
+       y="Gęstość",
+       fill="Ukończenie kursu")
+```
+
+Tak, widać, że nie bardzo znacząco, ale jednak ukończenie kursu certyfikacyjnego sprawia, że student ma wyższe oczekiwania, co do przyszłego wynagrodzenia
+
+## 4. Czy istnieje związek między czasem spędzanym na nauce oraz tym, czy student pracuje?
+Czy jeśli student pracuje, to spędza mniej czasu na nauce? Wydaję się, że tak może być. Sprawdzę to za pomocą wykresu kolumnowego
+```{r}
+dane %>%
+  ggplot() +
+  geom_bar(aes(x = CzasNauki, fill = Praca),
+           color = "white", 
+           position = "fill") +
+  theme_light() +
+  labs(title = "Dzienny czas nauki studenta, a podjęcie przez niego pracy",
+       x = "Czas nauki",
+       y = "Odsetek studentów",
+       fill = "Praca")
+
+table(dane[,c("CzasNauki", "Praca")])
+```
+
+Raczej to, że student pracuje nie sprawia, że mniej się uczy. Wręcz można powiedzieć, że jest odwrotnie: wśród osób uczących się dłużej, coraz większy odsetek zajmują osoby pracujące. Jest to dość nieoczywiste, gdyż wydawałoby się, że praca powoduje, że czasu na naukę będzie mniej, ale jak widać czas nauki bardziej wynika z innych czynników, którym z pewnością jest motywacja studenta.
+
+## 5. Czy status finansowy studenta wpływa na jego decyzję o podjęciu pracy w niepełnym wymiarze godzin?
+Przypuszczam, że gorszy status finansowy studenta powoduje, że podejmuje on pracę dodatkową. Z drugiej jednak strony podjęcie pracy może powodować, że status finansowy studenta jest lepszy. Zbadam to za pomocą funkcji *table()*
+```{r}
+table(dane[,c("Praca", "StatusFinansowy")])
+```
+
+Wstępnie widzimy, że zdecydowana większość studentów o dobrej ("Good") sytuacji finansowej nie podejmuje pracy. 
+
+Dla lepszej czytelności przedstawiam dane na wykresie kolumnowym, pokazującym odsetek studentów, którzy podejmują i nie podejmują pracy na poszczególnych poziomach statusu finansowego
+
+```{r}
+dane %>%
+  ggplot() +
+  geom_bar(aes(x = StatusFinansowy, fill = Praca),
+           color = "white", 
+           position = "fill") +
+  theme_light() +
+  labs(title = "Status finansowy studenta, a podjęcie przez niego pracy",
+       x = "Status finansowy",
+       y = "Odsetek studentów",
+       fill = "Praca")
+```
+
+Tu jeszcze dokładniej widać, że im lepszy status finansowy, tym mniejszy odsetek studentów podejmuje pracę w niepełnym wymiarze godzin, z wyjątkiem ostatniego poziomu "Fabulous", ale jest to spowodowane tym, że tylko 4 studentów określiło tak swój status finansowy.  
+
+## 6. Czy oceny z uczelni uzyskiwane na poszczególnych kierunkach różnią się znacząco od siebie jak wygląda struktura płci na poszczególnych kierunkach?
+Myślę, że kierunki typowo informatyczne są zazwyczaj bardziej wymagające, dlatego na kierunku *BCA* i *B.com ISM* spodziewam się gorszych ocen. W celu analizy generuję wykresy pudełkowe z wąsami: wartości ocen z uczelni z podziałem na kierunki.  
+
+```{r}
+dane %>%
+  ggplot() + 
+  geom_boxplot(aes(x = Kierunek, y = OcenaUczelnia))
+```
+
+Najgorsze oceny mają studenci kierunku B.com ISM, a na drugim miejscu BCA. Może to rzeczywiście wynikać z zależności, opisanej w moim przypuszczeniu.  
+Krzywa gęstości także potwierdza przypuszczenie o wyższych wynikach wśród kobiet niż wśród mężczyzn.  
+
+Teraz badam, ile kobiet, a ile mężczyzn studiuje na poszczególnych kierunkach. Przypuszczam, że na kierunkach informatycznych, czyli *BCA* i *B.com ISM* będą przeważać mężczyźni, natomiast dużo kobiet może być na kierunku *B.com Accounting and Finance*.
+```{r}
+table(dane[,c("Kierunek", "Plec")])
+
+```
+
+Powyższa tabela potwierdza moje przypuszczenia.
+
+## 7. Jakie są główne hobby/zainteresowania studentów studiujących na określonych kierunkach
+Przypuszczam, że większe zainteresowanie grami video będą wykazywać studenci kierunków bardziej informatycznych, to znaczy BCA lub B.com ISM, natomiast studenci kierunków Commerce i B.com Accounting and Finance będą się interesować bardziej czytaniem książek lub ewentualnie kinem.  
+Sprawdzam moje przypuszczenia za pomocą wykresu kolumnowego dla każdego kierunku z podziałem na hobby.
+```{r}
+dane %>%
+  ggplot() +
+  geom_bar(aes(x = Kierunek, fill = Hobby),
+           color = "white", 
+           position = "dodge2") +
+  theme_light() +
+  labs(title = "Kierunek studiów a zainteresowania studenta",
+       x = "Kierunek studiów",
+       y = "liczba studentów",
+       fill = "Hobby")
+```
+
+Na wszystkich kierunkach wśród studentów dominującym hobby (lub znajdującym się na drugim miejscu popularności w przypadku kierunku *Commerce*) jest sport. Drugim najpopularniejszym zainteresowaniem, z wyjątkiem kierunku *B.com Accounting and Finance*, gdzie popularnością cieszy się czytanie książek (Reading books), jest kino (Cinema).  Co do moich przypuszczeń: rzeczywiście, patrząc na dwa pozostałe hobby (czytanie książek i gry video), w przypadku kierunków *BCA* i *B.com ISM* gry video stanowią hobby większej liczby studentów niż czytanie książek, a w przypadku kierunków *Commerce* i *B.com Accounting and Finance* - odwrotnie. Przypuszczenia okazały się słuszne.
+
+## 8. Jakie inne wartości zmiennych mają studenci, którzy osiągają najlepsze, a jakie, którzy osiągają najgorsze oceny na uczelni?
+Badam, ile trzeba się uczyć, żeby osiągać najlepsze wyniki, 
+```{r}
+najlepsi_studenci <- dane %>%
+  arrange(desc(OcenaUczelnia)) %>%
+  head(3)
+najlepsi_studenci
+```
+
+Wszyscy trzej najlepsi studenci są z kierunku *Commerce*, pracują, ukończyli kurs certyfikujący i mają dobrą sytuację finansową i dobry, lub nawet świetny poziom stresu, a także krótko dojeżdzają na uczelnię. Co ciekawe dwaj najlepsi studenci to kobiety, których hobby jest czytanie książek, a preferowaną porą nauki: rano. Interesujący jest fakt, że każdy z tych studentów ma inny czas nauki: pierwszy uczy się 1-2h, drugi 3-4h, a trzeci tylko mniej niż pół godziny.  
+
+```{r}
+najgorsi_studenci <- dane %>%
+  arrange(OcenaUczelnia) %>%
+  head(3)
+najgorsi_studenci
+```
+
+Wszyscy trzej najgorsi studenci to mężczyźni i wszyscy trzej nie pracują. Mają dobry poziom stresu i dobry status finansowy. Najgorszy student nie ukończył kursu certyfikującego. Dwóch z trzech studentów interesuje się czytaniem książek, co powszechnie jest uważane za symbol mądrości, dlatego też wyniki te mogą być zastanawiające. 
+
