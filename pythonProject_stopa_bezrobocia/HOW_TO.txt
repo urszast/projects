@@ -1,0 +1,29 @@
+Program działa w oparciu o interfejs graficzny.
+Wymaga modułów pandas oraz matplotlib.
+
+Zaczynam od pobrania ze strony stat.gov.pl pliku,
+zawierającego między innymi wartości stopy bezrobocia w Polsce
+w latach 2010-2022 w poszczególnych kwartałach.
+
+W kolumnie pierwszej GUI (kolor niebieski) wyświetlane są średnie wartości stopy bezrobocia dla każdego roku
+oraz znajduje się przycisk, uruchamiający wykres słupkowy dla tych danych.
+W tym celu wydobywam z pliku potrzebne wiersze (tylko te zawierające stopę bezrobocia).
+Za pomocą '.groupby' dla kazdego roku liczę średnią wartość stopy bezrobocia.
+Tworzę okno tytułowe t1, okno l1, w którym wyświetlane są dane oraz przycisk, wywołujący funkcję wykres.
+W funkcji 'wykres' definuję wykres słupkowy (oznaczam i nazywam osie, nadaje tytuł,...)
+
+W kolumnie drugiej GUI (kolor zielony) użytkownik za pomocą kliknięcia odpowiedniego przycisku dostaje wartość,
+średniej/minimalnej/maksymalnej stopy bezrobocia w całym przedziale czasowym.
+W tym celu tworzę okno tytułowe t2, tworzę odpowiednie funkcje (maximum, minimum, srednia),
+w których umieszczam formuły wyznaczające odpowiednio maximum, minimum i średnią ze wszystkich lat,
+korzystając z wcześniej utworzonej (za pomocą '.groupby'): 'stopa_bezrobocia_group',
+zawierającej średnie roczne wartości stopy bezrobocia;
+oraz tworzę przyciski (radiowe) i okno l2, w którym będzie wyświetlana wybrana wartość.
+
+W trzeciej kolumnie GUI (kolor żółty) użytkownik za pomocą kliknięcia przycisku wybiera rok
+i otrzymuje informacje dotyczące średniej wartości stopy bezrobocia w wybranym roku
+oraz maksymalnej i minimalnej wartości kwartalnej stopy bezrobocia w wybranym roku.
+W tym celu wydobywam (za pomocą '.loc') odpowiednie wiersze dla każdego roku,
+tworzę okno tytułowe t3,
+tworze odpowiednie funkcje 'analiza_...', w których umieszczam formuły wyznaczające średnią, maximum i minimum
+tworzę przyciski (radiowe) oraz okno l3, w którym będą wyświetlane te informacje.
